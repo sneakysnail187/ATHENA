@@ -2,16 +2,19 @@ import java.util.Scanner;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Scanner;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.Date;
 
-public class Project {
+public class Athena {
 
     private static String connectionUrl = "jdbc:sqlserver://cxp-sql-02\\djp161;"
-        + "database=university;"
+        + "database=ATHENA;"
         + "user=sa;"
-        + "password=c?QoD2K.]^b:}(;"
+        + "password=;YC'BY?!h!b37yx0;"
         + "encrypt=true;"
         + "trustServerCertificate=true;"
         + "loginTimeout=3;";
@@ -30,8 +33,92 @@ public class Project {
 
     }
 
-    public static void search() {
-        // TODO implement this use case
+    public static void search(int customerID) throws ParseException {
+        Scanner sc = new Scanner(System.in);
+        boolean done  = false;
+        String searchProc = "";
+        String title = "";
+        String pub = "";
+        String genre = "";
+        Date datePub = new Date(System.currentTimeMillis());
+        DateFormat formatter = new SimpleDateFormat("MM-dd-yyyy");
+
+        System.out.println("What is the ID of the book are you searching for?");
+        int bookISBN = sc.nextInt();
+
+            System.out.println("How would you like to search?");
+            System.out.println("1. By title");
+            System.out.println("2. By author");
+            System.out.println("3. By publisher");
+            System.out.println("4. By date published");
+            System.out.println("5. By genre");
+            System.out.println("6. Return to main menu");
+
+            int selection = sc.nextInt();
+
+            switch (selection) {
+                case 1: 
+                    searchProc = "{call.dbo.selectBookTitle(?,?,?)}";
+                    System.out.println("Enter title");
+                    title = sc.nextLine();
+                    break;
+                case 2:
+                    searchProc = "{call.dbo.selectBookAuthor(?,?,?,?)}";
+                    break;
+                case 3:
+                    searchProc = "{call.dbo.selectBookPub(?,?,?)}";
+                    System.out.println("Enter publisher");
+                    pub = sc.nextLine();
+                    break;
+                case 4:
+                    searchProc = "{call.dbo.selectBookDate(?,?,?)}";
+                    System.out.println("Enter date published");
+                    datePub = (Date) formatter.parse(sc.nextLine());
+                    break;
+                case 5:
+                    searchProc = "{call.dbo.selectBookGenre(?,?,?)}";
+                    System.out.println("Enter genre");
+                    genre = sc.nextLine();
+                    break;
+                case 6:
+                    return;
+                default:
+                    System.out.println("Please input a number between 1 and 6 to make your selection.");
+                    break;
+            }
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+            CallableStatement prepsInsertCheckedOut = connection.prepareCall(searchProc, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);) 
+        {
+            prepsInsertCheckedOut.setInt(1, bookISBN);
+            prepsInsertCheckedOut.setInt(2, getCustomerLibID(customerID));
+            switch (selection) {
+                case 1: 
+                    prepsInsertCheckedOut.setString(3, title);
+                    break;
+                case 2:
+                    //prepsInsertCheckedOut.setString(3, title);
+                    break;
+                case 3:
+                    prepsInsertCheckedOut.setString(3, pub);
+                    break;
+                case 4:
+                    prepsInsertCheckedOut.setDate(3, datePub);
+                    break;
+                case 5:
+                    prepsInsertCheckedOut.setString(3, genre);
+                    break;
+                default:
+                    break;
+            }
+            //prepsInsertCheckedOut.setDate(3, new Date(System.currentTimeMillis()));
+
+            prepsInsertCheckedOut.execute();
+
+            connection.commit();
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void manageHolds(int customerID) {
@@ -39,7 +126,14 @@ public class Project {
     }
 
     public static void requestBook(int customerID) {
-        // TODO implement this use case
+        Scanner sc = new Scanner(System.in);
+
+        String requestProc = "{call dbo.insertRequest(?,?,?,?)}";
+
+        int bookID;
+        System.out.println("What is the ID of the book you would like to request?");
+        bookID = sc.nextInt();
+
     }
 
     public static void manageBalance(int customerID) {
@@ -96,12 +190,34 @@ public class Project {
         return customerID;
     }
 
-    public static void customerUseCases() {
+    public static int getCustomerLibID(int customerID){
+
+        String checkOutProc = "{call dbo.selectLibraryID(?, ?, ?)}";
+        int libID = 0;
+
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+            CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc,
+             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);) 
+        {
+            prepsInsertCheckedOut.setInt(1, customerID);
+
+            ResultSet r = prepsInsertCheckedOut.executeQuery();
+            libID = r.getInt("ID");
+            connection.commit();
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return libID;
+    }
+
+    public static void customerUseCases() throws ParseException {
 
         Scanner sc = new Scanner(System.in);
         boolean done = false;
 
-        System.out.println("Welcome? Let's start by figuring out who you are.");
+        System.out.println("Welcome! Let's start by figuring out who you are.");
         int customerID = getCustomerID();
 
         while (!done) {
@@ -111,13 +227,13 @@ public class Project {
             System.out.println("3. Request a book from another library");
             System.out.println("4. Manage holds");
             System.out.println("5. Manage balance");
-            System.out.println("6. Return to main menu")
+            System.out.println("6. Return to main menu");
 
             int selection = sc.nextInt();
 
             switch (selection) {
-                case 1:
-                    search();
+                case 1: 
+                    search(customerID); 
                     break;
                 case 2:
                     checkOutBook(customerID);
@@ -168,6 +284,7 @@ public class Project {
                 case 2:
                     done = true;
                     break;
+                
                 default:
                     System.out.println("Please input a number between 1 and 2 to make your selection.");
                     break;
@@ -175,7 +292,7 @@ public class Project {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ParseException {
 
         Scanner sc = new Scanner(System.in);
         boolean done = false;
@@ -199,7 +316,6 @@ public class Project {
                 break;
              case 3:
                 done = true;
-                sc.close();
                 break;
              default:
                 System.out.println("Please input a number between 1 and 3 to make your selection.");
@@ -207,6 +323,7 @@ public class Project {
             }
 
         }
+        sc.close();
     }
     
 }
