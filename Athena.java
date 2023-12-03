@@ -30,6 +30,22 @@ public class Project {
 
     }
 
+    public static void search() {
+        // TODO implement this use case
+    }
+
+    public static void manageHolds(int customerID) {
+        // TODO implement this use case
+    }
+
+    public static void requestBook(int customerID) {
+        // TODO implement this use case
+    }
+
+    public static void manageBalance(int customerID) {
+        // TODO implement this use case
+    }
+
     public static void checkOutBook(int customerID) {
 
         String checkOutProc = "{call dbo.insertCheckedOut(?, ?, ?)}";
@@ -101,15 +117,19 @@ public class Project {
 
             switch (selection) {
                 case 1:
+                    search();
                     break;
                 case 2:
                     checkOutBook(customerID);
                     break;
                 case 3:
+                    requestBook(customerID);
                     break;
                 case 4:
+                    manageHolds(customerID);
                     break;
                 case 5:
+                    manageBalance(customerID);
                     break;
                 case 6:
                     done = true;
