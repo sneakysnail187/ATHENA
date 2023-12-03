@@ -6,55 +6,56 @@ import java.util.Scanner;
 import java.sql.DriverManager;
 import java.sql.Date;
 
-public class Athena {
+public class Project {
 
-    public static void addBook(int libraryID) {
-
-        String connectionUrl = "jdbc:sqlserver://cxp-sql-02\\djp161;"
+    private static String connectionUrl = "jdbc:sqlserver://cxp-sql-02\\djp161;"
         + "database=university;"
         + "user=sa;"
-        + "password=*****"
+        + "password=c?QoD2K.]^b:}(;"
         + "encrypt=true;"
         + "trustServerCertificate=true;"
         + "loginTimeout=3;";
+
+    public static void addBook(int libraryID) {
 
         Scanner sc = new Scanner(System.in);
         String bookTitle, authorFirstName, authorLastName;
         String bookISBN, bookPublisher;
         Date datePublished;
-        String 
 
         String selectAuthor = "{call dbo.selectAuthor(?, ?, ?)}";
         String insertAuthor = "{call dbo.insertAuthor(?, ?, ?)}";
-        String insertWrote = "{call dbo.insertWrote(?, ?)}"
-        String insertPhysicalCopy = "{call dbo.insertPhysicalCopy(?, ?)}"
-        try (Connection connection =
-            DriverManager.getConnection(connectionUrl);
-            CallableStatement prepsStoredProc =
-            connection.prepareCall(callStoredProc);)
+        String insertWrote = "{call dbo.insertWrote(?, ?)}";
+        String insertPhysicalCopy = "{call dbo.insertPhysicalCopy(?, ?)}";
+
+    }
+
+    public static void checkOutBook(int customerID) {
+
+        String checkOutProc = "{call dbo.insertCheckedOut(?, ?, ?)}";
+
+        int bookID;
+        Scanner sc = new Scanner(System.in);
+
+        System.out.println("What is the ID of the book you would like to check out today?");
+        bookID = sc.nextInt();
+
+        // TODO verify book ID with select statement
+
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+            CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc);) 
         {
-            connection.setAutoCommit(false);
+            prepsInsertCheckedOut.setInt(1, customerID);
+            prepsInsertCheckedOut.setInt(2, bookID);
+            prepsInsertCheckedOut.setDate(3, new Date(System.currentTimeMillis()));
 
-            prepsStoredProc.setString(1, inpName);
-            prepsStoredProc.setString(2, inpDeptName);
-            prepsStoredProc.setInt(3, inpSalary);
-            prepsStoredProc.registerOutParameter(4,
-            java.sql.Types.INTEGER) ;
-            prepsStoredProc.execute();
-
-            System.out.println("Generated Identity: " +
-            prepsStoredProc.getInt(4));
+            prepsInsertCheckedOut.execute();
 
             connection.commit();
         }
         catch (SQLException e) {
             e.printStackTrace();
         }
-
-    }
-
-    public static void checkOutBook(int customerID) {
-        
     }
 
     public static int getCustomerID() {
@@ -62,6 +63,8 @@ public class Athena {
 
         String customerFirstName, customerLastName;
         Date customerDOB;
+
+        int customerID = 0;
 
         System.out.println("Please enter your first name:");
         customerFirstName = sc.nextLine();
@@ -71,7 +74,6 @@ public class Athena {
 
         // TODO figure out how to deal with dates in JDBC
         System.out.println();
-
 
 
         sc.close();
@@ -87,6 +89,35 @@ public class Athena {
         int customerID = getCustomerID();
 
         while (!done) {
+            System.out.println("Please enter a number to select an action:");
+            System.out.println("1. Make a search");
+            System.out.println("2. Check out a book from this library");
+            System.out.println("3. Request a book from another library");
+            System.out.println("4. Manage holds");
+            System.out.println("5. Manage balance");
+            System.out.println("6. Return to main menu")
+
+            int selection = sc.nextInt();
+
+            switch (selection) {
+                case 1:
+                    break;
+                case 2:
+                    checkOutBook(customerID);
+                    break;
+                case 3:
+                    break;
+                case 4:
+                    break;
+                case 5:
+                    break;
+                case 6:
+                    done = true;
+                    break;
+                default:
+                    System.out.println("Please input a number between 1 and 6 to make your selection.");
+                    break;
+            }
 
         }
 
@@ -97,6 +128,7 @@ public class Athena {
     }
 
     public static void main(String[] args) {
+
         Scanner sc = new Scanner(System.in);
         boolean done = false;
 
@@ -115,7 +147,7 @@ public class Athena {
                 customerUseCases();
                 break;
              case 2:
-                libraryUseCases();
+                librarianUseCases();
                 break;
              case 3:
                 done = true;
