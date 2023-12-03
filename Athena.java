@@ -105,7 +105,7 @@ public class Athena {
 
     }
 
-    public static void search() throws ParseException {
+    public static void search() {
         int customerID = userID;
         Scanner sc = new Scanner(System.in);
         boolean done  = false;
@@ -145,8 +145,8 @@ public class Athena {
                     break;
                 case 4:
                     searchProc = "{call.dbo.selectBookDate(?,?,?)}";
-                    System.out.println("Enter date published");
-                    datePub = (Date) formatter.parse(sc.nextLine());
+                    System.out.println("Enter date published in form: YYYY-MM-DD:");
+                    datePub = Date.valueOf(sc.nextLine());
                     break;
                 case 5:
                     searchProc = "{call.dbo.selectBookGenre(?,?,?)}";
@@ -195,6 +195,10 @@ public class Athena {
     }
 
     public static void manageHolds() {
+
+    }
+
+    public static void manageBalance() {
 
     }
 
@@ -277,7 +281,7 @@ public class Athena {
         return libID;
     }
 
-    public static void customerUseCases() throws ParseException {
+    public static void customerUseCases() {
 
 
         boolean done = false;
@@ -367,32 +371,34 @@ public class Athena {
         boolean done = false;
 
         System.out.println("Welcome to ATHENA.");
-        
-        while (!done){
+
+        while (!done) {
             System.out.println("How would you like to access the system today?");
-            System.out.println("1. As a customer");
-            System.out.println("2. As a librarian");
-            System.out.println("3. Exit");
+            System.out.println("1. I am a new customer");
+            System.out.println("2. I am a returning customer");
+            System.out.println("3. I am a librarian");
+            System.out.println("4. Exit");
 
             int selection = sc.nextInt();
 
             switch (selection) {
-             case 1: 
-                customerUseCases();
-                break;
-             case 2:
-                librarianUseCases();
-                break;
-             case 3:
-                done = true;
-                sc.close();
-                break;
-             default:
-                System.out.println("Please input a number between 1 and 3 to make your selection.");
-                break;
+                case 1:
+                    newCustomer();
+                    break;
+                case 2:
+                    customerUseCases();
+                    break;
+                case 3:
+                    librarianUseCases();
+                    break;
+                case 4:
+                    done = true;
+                    sc.close();
+                    break;
+                default:
+                    System.out.println("Please input a number between 1 and 3 to make your selection.");
+                    break;
             }
-
         }
     }
-    
 }
