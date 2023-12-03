@@ -144,7 +144,35 @@ public class Project {
     }
 
     public static void librarianUseCases() {
+        Scanner sc = new Scanner(System.in);
+        boolean done = false;
 
+        System.out.println("Welcome! Which library are you working at?");
+        System.out.println("Please enter the zip code of your library:");
+        int zip = sc.nextInt();
+
+        // TODO get libraryID from zip code
+        int libraryID = 0;
+
+        while (!done) {
+            System.out.println("Please enter a number to select an action:");
+            System.out.println("1. Add a book");
+            System.out.println("2. Return to main menu");
+
+            int selection = sc.nextInt();
+
+            switch (selection) {
+                case 1:
+                    addBook(libraryID);
+                    break;
+                case 2:
+                    done = true;
+                    break;
+                default:
+                    System.out.println("Please input a number between 1 and 2 to make your selection.");
+                    break;
+            }
+        }
     }
 
     public static void main(String[] args) {
