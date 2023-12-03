@@ -212,31 +212,62 @@ public class Athena {
         bookID = sc.nextInt();
     }
 
-    public static void checkOutBook() {
+    public static void checkOutBook(int customerID) {
 
         String checkOutProc = "{call dbo.insertCheckedOut(?, ?, ?)}";
+        String selectBook = "select book.isbn as isbn, book.title as title, author.last_name as author_name"
+                + "from physical_copy"
+                + "inner join book on (physical_copy.isbn = book.isbn)"
+                + "inner join wrote on (book.isbn = wrote.isbn)"
+                + "inner join author on (wrote.author_ID) = author.ID"
+                + "where physical_copy.ID = ?"
 
         int bookID;
         Scanner sc = new Scanner(System.in);
 
-        System.out.println("What is the ID of the book you would like to check out today?");
-        bookID = sc.nextInt();
+        while (!haveValidBookID) {
 
-        // TODO verify book ID with select statement
+            System.out.println("What is the ID of the book you would like to check out today?");
+            bookID = sc.nextInt();
 
-        try (Connection connection = DriverManager.getConnection(connectionUrl);
-            CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc);) 
-        {
-            prepsInsertCheckedOut.setInt(1, userID);
-            prepsInsertCheckedOut.setInt(2, bookID);
-            prepsInsertCheckedOut.setDate(3, new Date(System.currentTimeMillis()));
+            // TODO verify book ID with select statement
+            try (Connection connection = DriverManager.getConnection(connectionUrl);
+                 CallableStatement prepsSelectBook = connection.prepareCall(selectBook);)
+            {
+                prepsSelectBook.setInt(1, bookID);
+                ResultSet rs = prepsSelectBook.execute();
 
-            prepsInsertCheckedOut.execute();
+                if (rs.next()) {
+                    String isbn = rs.getString("isbn")
+                    String title = rs.getString("title")
+                    String author_name = rs.getString("author_name");
+                    System.out.println(String.format("Attempting to check out %s: %s by %s"), isbn, title, author_name);
+                    haveValidBookID = true;
+                }
 
-            connection.commit();
-        }
-        catch (SQLException e) {
-            e.printStackTrace();
+                else {
+                    System.out.println("Could not find the book with that ID, please try again.");
+                }
+
+            }
+            except (SQLException e) {
+                e.printStackTrace();
+            }
+
+            try (Connection connection = DriverManager.getConnection(connectionUrl);
+                 CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc);)
+            {
+                prepsInsertCheckedOut.setInt(1, customerID);
+                prepsInsertCheckedOut.setInt(2, bookID);
+                prepsInsertCheckedOut.setDate(3, new Date(System.currentTimeMillis()));
+
+                prepsInsertCheckedOut.execute();
+
+                connection.commit();
+            }
+            catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
