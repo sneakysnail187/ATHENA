@@ -89,7 +89,42 @@ public class Athena {
         }
     }
 
+    public static void returningCustomer() {
+        String validateUser = "{call dbo.validateUser(?, ?, ?)}";
 
+        boolean validated = false;
+        while(!validated){
+            System.out.println("Welcome!");
+            System.out.println("Please enter your account ID:");
+            int ID = sc.nextInt();
+            sc.nextLine();
+            System.out.println("Please enter your DOB of form YYYY-MM-DD:");
+            String dateraw = sc.nextLine();
+            Date date = Date.valueOf(dateraw);
+
+            try (Connection connection = DriverManager.getConnection(connectionUrl);
+                 CallableStatement prepsValidateUser = connection.prepareCall(validateUser);)
+            {
+                prepsValidateUser.setInt(1, ID);
+                prepsValidateUser.setDate(2, date);
+                prepsValidateUser.registerOutParameter(3, java.sql.Types.INTEGER);
+
+                prepsValidateUser.execute();
+                connection.commit();
+                int res = prepsValidateUser.getInt(3);
+
+                if (res == 1) {
+                    userID = ID;
+                    System.out.println("Succcesfully logged in");
+                    validated = true;
+                } else {
+                    System.out.println("Error logging in, please try again");
+                }
+            }catch (SQLException E) {
+                E.printStackTrace();
+            }
+        }
+    }
 
     public static void addBook(int libraryID) {
 
@@ -307,7 +342,6 @@ public class Athena {
 
     public static void customerUseCases() {
 
-
         boolean done = false;
 
         System.out.println("Welcome! Let's start by figuring out who you are.");
@@ -408,8 +442,10 @@ public class Athena {
             switch (selection) {
                 case 1:
                     newCustomer();
+                    customerUseCases();
                     break;
                 case 2:
+                    returningCustomer();
                     customerUseCases();
                     break;
                 case 3:
