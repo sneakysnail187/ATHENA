@@ -107,87 +107,78 @@ public class Athena {
 
     public static void search() {
         int customerID = userID;
-        Scanner sc = new Scanner(System.in);
-        boolean done  = false;
         String searchProc = "";
-        String title = "";
-        String pub = "";
-        String genre = "";
+        String info = "";
         Date datePub = new Date(System.currentTimeMillis());
-        DateFormat formatter = new SimpleDateFormat("MM-dd-yyyy");
 
-        System.out.println("What is the ID of the book are you searching for?");
-        int bookISBN = sc.nextInt();
+        System.out.println("How would you like to search?");
+        System.out.println("1. By title");
+        System.out.println("2. By author");
+        System.out.println("3. By publisher");
+        System.out.println("4. By date published");
+        System.out.println("5. By genre");
+        System.out.println("6. Return to main menu");
 
-            System.out.println("How would you like to search?");
-            System.out.println("1. By title");
-            System.out.println("2. By author");
-            System.out.println("3. By publisher");
-            System.out.println("4. By date published");
-            System.out.println("5. By genre");
-            System.out.println("6. Return to main menu");
+        int selection = sc.nextInt();
 
-            int selection = sc.nextInt();
-
-            switch (selection) {
-                case 1:
-                    searchProc = "{call.dbo.selectBookTitle(?,?,?)}";
-                    System.out.println("Enter title");
-                    title = sc.nextLine();
-                    break;
-                case 2:
-                    searchProc = "{call.dbo.selectBookAuthor(?,?,?,?)}";
-                    break;
-                case 3:
-                    searchProc = "{call.dbo.selectBookPub(?,?,?)}";
-                    System.out.println("Enter publisher");
-                    pub = sc.nextLine();
-                    break;
-                case 4:
-                    searchProc = "{call.dbo.selectBookDate(?,?,?)}";
-                    System.out.println("Enter date published in form: YYYY-MM-DD:");
-                    datePub = Date.valueOf(sc.nextLine());
-                    break;
-                case 5:
-                    searchProc = "{call.dbo.selectBookGenre(?,?,?)}";
-                    System.out.println("Enter genre");
-                    genre = sc.nextLine();
-                    break;
-                case 6:
-                    return;
-                default:
-                    System.out.println("Please input a number between 1 and 6 to make your selection.");
-                    break;
-            }
+        switch (selection) {
+            case 1:
+                searchProc = "{call.dbo.selectBookTitle(?)}";
+                System.out.println("Enter title");
+                info = sc.nextLine();
+                break;
+            case 2:
+                searchProc = "{call.dbo.selectBookAuthor(?)}";
+                System.out.println("Enter author's full name without spaces");
+                info = sc.nextLine();
+                break;
+            case 3:
+                searchProc = "{call.dbo.selectBookPub(?)}";
+                System.out.println("Enter publisher");
+                info = sc.nextLine();
+                break;
+            case 4:
+                searchProc = "{call.dbo.selectBookDate(?)}";
+                System.out.println("Enter date published in form: YYYY-MM-DD:");
+                datePub = Date.valueOf(sc.nextLine());
+                break;
+            case 5:
+                searchProc = "{call.dbo.selectBookGenre(?)}";
+                System.out.println("Enter genre");
+                info = sc.nextLine();
+                break;
+            case 6:
+                return;
+            default:
+                System.out.println("Please input a number between 1 and 6 to make your selection.");
+                break;
+        }
         try (Connection connection = DriverManager.getConnection(connectionUrl);
             CallableStatement prepsInsertCheckedOut = connection.prepareCall(searchProc, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);)
         {
-            prepsInsertCheckedOut.setInt(1, bookISBN);
-            prepsInsertCheckedOut.setInt(2, getCustomerLibID(customerID));
-            switch (selection) {
-                case 1:
-                    prepsInsertCheckedOut.setString(3, title);
-                    break;
-                case 2:
-                    //prepsInsertCheckedOut.setString(3, title);
-                    break;
-                case 3:
-                    prepsInsertCheckedOut.setString(3, pub);
-                    break;
-                case 4:
-                    prepsInsertCheckedOut.setDate(3, datePub);
-                    break;
-                case 5:
-                    prepsInsertCheckedOut.setString(3, genre);
-                    break;
-                default:
-                    break;
+            if(selection == 3){
+                prepsInsertCheckedOut.setDate(1, datePub);
             }
+            else{
+                prepsInsertCheckedOut.setString(1, info);
+            }
+            
+                
             //prepsInsertCheckedOut.setDate(3, new Date(System.currentTimeMillis()));
 
-            prepsInsertCheckedOut.execute();
+            ResultSet r = prepsInsertCheckedOut.executeQuery();
 
             connection.commit();
+
+            while (r.next()) {
+                String title = r.getString("title");
+                String genre = r.getString("genre");
+                String publisher = r.getString("publisher");
+                Date date = r.getDate("date_published");
+                String lib = r.getString("library_ID");
+                System.out.println("Title: " + title + "Genre: " + genre 
+                + "Publisher: " + publisher + "Date Published: " + date + "Library ID: " + lib);
+            }
         }
         catch (SQLException e) {
             e.printStackTrace();
