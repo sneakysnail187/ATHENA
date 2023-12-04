@@ -384,12 +384,100 @@ public class Athena {
         }
     }
 
-    public static void manageHolds() {
+    public static void placeHold() {
+        String insertHoldProc = "{call dbo.insertHold(?, ?, ?)}";
 
+        System.out.println("Please enter the book ID you would like to place on hold:");
+        int bookId = sc.nextInt();
+        sc.nextLine();
+        System.out.println("When would you like this held until (YYYY-MM-DD)?");
+        String dateraw = sc.nextLine();
+        Date date = Date.valueOf(dateraw);
+
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+             CallableStatement prepsInsertHold = connection.prepareCall(insertHoldProc);)
+        {
+            prepsInsertHold.setInt(1, userID);
+            prepsInsertHold.setInt(2, bookId);
+            prepsInsertHold.setDate(3, date);
+            prepsInsertHold.execute();
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
-    public static void manageBalance() {
+    public static void removeHold() {
+        String removeHoldProc = "{call dbo.removeHold(?, ?)}";
+        System.out.println("Please enter the book ID you would like to remove from hold:");
+        int bookId = sc.nextInt();
+        sc.nextLine();
 
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+             CallableStatement prepsRemoveHold = connection.prepareCall(removeHoldProc);)
+        {
+            prepsRemoveHold.setInt(1, bookId);
+            prepsRemoveHold.setInt(2, userID);
+            prepsRemoveHold.execute();
+            connection.commit();
+
+            System.out.println("Book ID " + bookId + " removed from hold");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void viewHolds() {
+        String viewHoldProc = "{call dbo.viewHolds(?)}";
+
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+             CallableStatement prepsViewHold = connection.prepareCall(viewHoldProc);)
+        {
+            prepsViewHold.setInt(1, userID);
+            ResultSet rs = prepsViewHold.executeQuery();
+            connection.commit();
+
+            System.out.println("Your current holds are:");
+            while(rs.next()) {
+                System.out.println("Book " + rs.getInt("book_ID") +
+                        " on hold until " + rs.getString("hold_until"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void manageHolds() {
+        boolean done = false;
+
+        while (!done) {
+            System.out.println("Please enter a number to select an action:");
+            System.out.println("1. Place a hold");
+            System.out.println("2. Cancel a hold");
+            System.out.println("3. View my holds");
+            System.out.println("4. Exit");
+            int selection = sc.nextInt();
+            sc.nextLine();
+            switch (selection) {
+                case 1:
+                    placeHold();
+                    break;
+                case 2:
+                    removeHold();
+                    break;
+                case 3:
+                    viewHolds();
+                    break;
+                case 4:
+                    done = true;
+                    break;
+                default:
+                    System.out.println("Please input a number between 1 and 4 to make your selection.");
+                    break;
+            }
+        }
     }
 
     public static void requestBook() {
@@ -571,14 +659,11 @@ public class Athena {
                     manageHolds();
                     break;
                 case 5:
-                    manageBalance();
-                    break;
-                case 6:
                     done = true;
                     userID = null;
                     break;
                 default:
-                    System.out.println("Please input a number between 1 and 6 to make your selection.");
+                    System.out.println("Please input a number between 1 and 5 to make your selection.");
                     break;
             }
 
@@ -633,6 +718,7 @@ public class Athena {
             System.out.println("4. Exit");
 
             int selection = sc.nextInt();
+            sc.nextLine();
 
             switch (selection) {
                 case 1:
@@ -651,7 +737,7 @@ public class Athena {
                     sc.close();
                     break;
                 default:
-                    System.out.println("Please input a number between 1 and 3 to make your selection.");
+                    System.out.println("Please input a number between 1 and 4 to make your selection.");
                     break;
             }
         }
