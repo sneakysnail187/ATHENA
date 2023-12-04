@@ -319,64 +319,65 @@ public class Athena {
         System.out.println("6. Return to main menu");
 
         int selection = sc.nextInt();
+        sc.nextLine();
 
-        switch (selection) {
-            case 1:
-                searchProc = "{call.dbo.selectBookTitle(?)}";
-                System.out.println("Enter title");
-                info = sc.nextLine();
-                break;
-            case 2:
-                searchProc = "{call.dbo.selectBookAuthor(?)}";
-                System.out.println("Enter author's full name without spaces");
-                info = sc.nextLine();
-                break;
-            case 3:
-                searchProc = "{call.dbo.selectBookPub(?)}";
-                System.out.println("Enter publisher");
-                info = sc.nextLine();
-                break;
-            case 4:
-                searchProc = "{call.dbo.selectBookDate(?)}";
-                System.out.println("Enter date published in form: YYYY-MM-DD:");
-                datePub = Date.valueOf(sc.nextLine());
-                break;
-            case 5:
-                searchProc = "{call.dbo.selectBookGenre(?)}";
-                System.out.println("Enter genre");
-                info = sc.nextLine();
-                break;
-            case 6:
-                return;
-            default:
-                System.out.println("Please input a number between 1 and 6 to make your selection.");
-                break;
-        }
+            switch (selection) {
+                case 1:
+                    searchProc = "{call dbo.selectBookTitle(?)}";
+                    System.out.println("Enter title");
+                    info = sc.nextLine();
+                    break;
+                case 2:
+                    searchProc = "{call dbo.selectBookAuthor(?)}";
+                    System.out.println("Enter author's full name without spaces");
+                    info = sc.nextLine();
+                    break;
+                case 3:
+                    searchProc = "{call dbo.selectBookPub(?)}";
+                    System.out.println("Enter publisher");
+                    info = sc.nextLine();
+                    break;
+                case 4:
+                    searchProc = "{call dbo.selectBookDate(?)}";
+                    System.out.println("Enter date published in form: YYYY-MM-DD:");
+                    datePub = Date.valueOf(sc.nextLine());
+                    break;
+                case 5:
+                    searchProc = "{call dbo.selectBookGenre(?)}";
+                    System.out.println("Enter genre");
+                    info = sc.nextLine();
+                    break;
+                case 6:
+                    return;
+                default:
+                    System.out.println("Please input a number between 1 and 6 to make your selection.");
+                    break;
+            }
         try (Connection connection = DriverManager.getConnection(connectionUrl);
-             CallableStatement prepsInsertCheckedOut = connection.prepareCall(searchProc, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);)
+             CallableStatement prepsSearch = connection.prepareCall(searchProc);)
         {
-            if(selection == 3){
-                prepsInsertCheckedOut.setDate(1, datePub);
+            if(selection == 4){
+                prepsSearch.setDate(1, datePub);
             }
             else{
-                prepsInsertCheckedOut.setString(1, info);
+                prepsSearch.setString(1, info);
             }
-
-
-            //prepsInsertCheckedOut.setDate(3, new Date(System.currentTimeMillis()));
-
-            ResultSet r = prepsInsertCheckedOut.executeQuery();
+            
+            ResultSet r = prepsSearch.executeQuery();
 
             connection.commit();
 
+            //r.next();
+
             while (r.next()) {
+                String ID = r.getString("ID");
                 String title = r.getString("title");
                 String genre = r.getString("genre");
                 String publisher = r.getString("publisher");
                 Date date = r.getDate("date_published");
                 String lib = r.getString("library_ID");
-                System.out.println("Title: " + title + "Genre: " + genre
-                        + "Publisher: " + publisher + "Date Published: " + date + "Library ID: " + lib);
+                System.out.println("ID: "+ ID +" Title: " + title + " Genre: " + genre 
+                + " Publisher: " + publisher + " Date Published: " + date + " Library ID: " + lib);
             }
         }
         catch (SQLException e) {
@@ -483,21 +484,32 @@ public class Athena {
     public static void requestBook() {
         String requestProc = "{call dbo.insertRequest(?,?,?)}";
         int customerID = userID;
-
-        String bookID;
+        int destLib;
+        int bookID;
         System.out.println("What is the ID of the book you would like to request?");
-        bookID = sc.nextLine();
-        try (Connection connection = DriverManager.getConnection(connectionUrl);
-             CallableStatement prepsSelectBook = connection.prepareCall(requestProc);)
-        {
-            prepsSelectBook.setString(1, bookID);
-            prepsSelectBook.setInt(2, getCustomerLibID(customerID));
-            prepsSelectBook.setInt(3, getBookLibraryID(bookID));
+        bookID = sc.nextInt();
+        sc.nextLine();
 
-        }
-        catch (SQLException e) {
-            e.printStackTrace();
-        }
+        System.out.println("What is the ID of the library you would like to pick up from?");
+        destLib = sc.nextInt();
+
+        int sourceLib = getBookLibraryID(bookID);
+
+        sc.nextLine();
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+                 CallableStatement prepsSelectBook = connection.prepareCall(requestProc);)
+            {
+                prepsSelectBook.setInt(1, bookID);
+                prepsSelectBook.setInt(2, destLib);
+                prepsSelectBook.setInt(3, sourceLib);
+
+                prepsSelectBook.execute();
+
+                connection.commit();
+            }
+            catch (SQLException e) {
+                e.printStackTrace();
+            }
         System.out.println("Request commited");
     }
 
@@ -557,19 +569,20 @@ public class Athena {
         }
     }
 
-    public static int getBookLibraryID(String bookIsbn) {
+    public static int getBookLibraryID(int bookID) {
 
-        String checkOutProc = "{call dbo.selectBookLibraryID(?)}";
+        String getLibProc = "{call dbo.selectBookLibraryID(?)}";
         int libID = 0;
 
         try (Connection connection = DriverManager.getConnection(connectionUrl);
-             CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc,
-                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);)
+             CallableStatement prepsInsertCheckedOut = connection.prepareCall(getLibProc);)
         {
-            prepsInsertCheckedOut.setString(1, bookIsbn);
+            prepsInsertCheckedOut.setInt(1, bookID);
 
             ResultSet r = prepsInsertCheckedOut.executeQuery();
-            libID = r.getInt("library_ID");
+            if(r.next()){
+                libID = r.getInt("library_ID");
+            }
             connection.commit();
         }
         catch (SQLException e) {
@@ -581,17 +594,16 @@ public class Athena {
 
     public static int getCustomerLibID(int customerID){
 
-        String checkOutProc = "{call dbo.selectLibraryID(?, ?, ?)}";
+        String checkOutProc = "{call dbo.selectLibraryID(?)}";
         int libID = 0;
 
         try (Connection connection = DriverManager.getConnection(connectionUrl);
-             CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc,
-                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);)
+             CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc);)
         {
             prepsInsertCheckedOut.setInt(1, customerID);
 
             ResultSet r = prepsInsertCheckedOut.executeQuery();
-            libID = r.getInt("ID");
+            libID = r.getInt("local_library_ID");
             connection.commit();
         }
         catch (SQLException e) {
