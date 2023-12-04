@@ -229,13 +229,24 @@ public class Athena {
     }
 
     public static void requestBook() {
-        Scanner sc = new Scanner(System.in);
+        String requestProc = "{call dbo.insertRequest(?,?,?)}";
+        int customerID = userID;
 
-        String requestProc = "{call dbo.insertRequest(?,?,?,?)}";
-
-        int bookID;
+        String bookID;
         System.out.println("What is the ID of the book you would like to request?");
-        bookID = sc.nextInt();
+        bookID = sc.nextLine();
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+                 CallableStatement prepsSelectBook = connection.prepareCall(requestProc);)
+            {
+                prepsSelectBook.setString(1, bookID);
+                prepsSelectBook.setInt(2, getCustomerLibID(customerID));
+                prepsSelectBook.setInt(3, getBookLibraryID(bookID));
+
+            }
+            catch (SQLException e) {
+                e.printStackTrace();
+            }
+        System.out.println("Request commited");
     }
 
     public static void checkOutBook(int customerID) {
@@ -300,22 +311,42 @@ public class Athena {
     }
 
     public static int getCustomerID() {
-        Scanner scanner = new Scanner(System.in);
-
         String customerFirstName, customerLastName;
         Date customerDOB;
 
         int customerID = 0;
 
         System.out.println("Please enter your first name:");
-        customerFirstName = scanner.nextLine();
+        customerFirstName = sc.nextLine();
 
         System.out.println("Please enter your last name:");
-        customerLastName = scanner.nextLine();
+        customerLastName = sc.nextLine();
 
         // TODO figure out how to deal with dates in JDBC
         // System.out.println();
         return customerID;
+    }
+
+    public static int getBookLibraryID(String bookIsbn) {
+
+        String checkOutProc = "{call dbo.selectBookLibraryID(?)}";
+        int libID = 0;
+
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+             CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc,
+                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);)
+        {
+            prepsInsertCheckedOut.setString(1, bookIsbn);
+
+            ResultSet r = prepsInsertCheckedOut.executeQuery();
+            libID = r.getInt("library_ID");
+            connection.commit();
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return libID;
     }
 
     public static int getCustomerLibID(int customerID){
