@@ -614,8 +614,7 @@ public class Athena {
             System.out.println("2. Check out a book from this library");
             System.out.println("3. Request a book from another library");
             System.out.println("4. Manage holds");
-            System.out.println("5. Manage balance");
-            System.out.println("6. Return to main menu");
+            System.out.println("5. Return to main menu");
 
             int selection = sc.nextInt();
 
