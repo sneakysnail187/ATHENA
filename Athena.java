@@ -9,6 +9,7 @@ import java.text.SimpleDateFormat;
 import java.sql.DriverManager;
 import java.sql.Date;
 import java.sql.ResultSet;
+import java.util.Objects;
 
 public class Athena {
     private static String connectionUrl = "jdbc:sqlserver://cxp-sql-03\\mxr659;"
@@ -128,15 +129,176 @@ public class Athena {
 
     public static void addBook(int libraryID) {
 
-        Scanner sc = new Scanner(System.in);
         String bookTitle, authorFirstName, authorLastName;
         String bookISBN, bookPublisher;
         Date datePublished;
 
+        String selectBook = "{call dbo.selectBook(?)}";
+        String insertBook = "{call dbo.insertBook(?, ?, ?, ?, ?)}";
         String selectAuthor = "{call dbo.selectAuthor(?, ?, ?)}";
-        String insertAuthor = "{call dbo.insertAuthor(?, ?, ?)}";
+        String insertAuthor = "{call dbo.insertAuthor(?, ?, ?, ?)}";
         String insertWrote = "{call dbo.insertWrote(?, ?)}";
-        String insertPhysicalCopy = "{call dbo.insertPhysicalCopy(?, ?)}";
+        String insertPhysicalCopy = "{call dbo.insertPhysicalCopy(?, ?, ?)}";
+
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+             CallableStatement prepsSelectBook = connection.prepareCall(selectBook);
+             CallableStatement prepsInsertBook = connection.prepareCall(insertBook);
+             CallableStatement prepsSelectAuthor = connection.prepareCall(selectAuthor);
+             CallableStatement prepsInsertAuthor = connection.prepareCall(insertAuthor);
+             CallableStatement prepsInsertWrote = connection.prepareCall(insertWrote);
+             CallableStatement prepsInsertPhysicalCopy = connection.prepareCall(insertPhysicalCopy);)
+        {
+            // Get book info and insert into books
+
+            System.out.println("What is the ISBN of the book you are adding?");
+            String isbn = sc.nextLine();
+            prepsSelectBook.setString(1, isbn);
+
+            ResultSet books = prepsSelectBook.executeQuery();
+
+            if (books.next()) {
+                System.out.println(String.format("Book found: %s", books.getString("title")));
+            } else {
+                System.out.println("Book not found, please enter remaining information:");
+
+                prepsInsertBook.setString(1, isbn);
+
+                System.out.println("What is the title of the book you are adding?");
+                String title = sc.nextLine();
+                prepsInsertBook.setString(2, title);
+
+                System.out.println("What is the genre of the book you are adding?");
+                String genre = sc.nextLine();
+                prepsInsertBook.setString(3, genre);
+
+                System.out.println("Who is the publisher of the book you are adding?");
+                String publisher = sc.nextLine();
+                prepsInsertBook.setString(4, publisher);
+
+                System.out.println("When was the book you are adding published? Enter in format YYYY-MM-DD");
+                Date datePub = Date.valueOf(sc.nextLine());
+                prepsInsertBook.setDate(5, datePub);
+
+                prepsInsertBook.execute();
+                System.out.println("Row inserted into book table");
+            }
+
+            // Get author info and check for existence, or insert into author
+
+            System.out.println("What is the author's last name?");
+            String lastName = sc.nextLine();
+            prepsSelectAuthor.setString(1, lastName);
+
+            boolean doneWithFirstName = false;
+            String firstName = null;
+            while (!doneWithFirstName) {
+                System.out.println("Will you be entering a first name for the author? Y/N");
+                String resp = sc.nextLine().toLowerCase();
+                if (resp.equals("y")) {
+                    System.out.println("What is the author's first name?");
+                    firstName = sc.nextLine();
+                    doneWithFirstName = true;
+                } else if (resp.equals("n")) {
+                    firstName = null;
+                    doneWithFirstName = true;
+                } else {
+                    System.out.println("Invalid input, please input Y or N");
+                }
+            }
+            if (Objects.isNull(firstName)) {
+                prepsSelectAuthor.setNull(2, Types.VARCHAR);
+            } else {
+                prepsSelectAuthor.setString(2, firstName);
+            }
+
+            boolean doneWithMiddleInitial = false;
+            String middleInitial = null;
+            while (!doneWithMiddleInitial) {
+                System.out.println("Will you be entering a middle initial for the author? Y/N");
+                String resp = sc.nextLine().toLowerCase();
+                if (resp.equals("y")) {
+                    System.out.println("What is the author's middle initial?");
+                    middleInitial = sc.nextLine();
+                    if (middleInitial.length() > 1) {
+                        System.out.println("Middle initial must be only one character long.");
+                    } else {
+                        doneWithMiddleInitial = true;
+                    }
+                } else if (resp.equals("n")) {
+                    middleInitial = null;
+                    doneWithMiddleInitial = true;
+                } else {
+                    System.out.println("Invalid input, please input Y or N");
+                }
+            }
+            if (Objects.isNull(middleInitial)) {
+                prepsSelectAuthor.setNull(3, Types.VARCHAR);
+            } else {
+                prepsSelectAuthor.setString(3, middleInitial);
+            }
+
+            ResultSet authors = prepsSelectAuthor.executeQuery();
+            int authorID;
+
+            if (!authors.next()) {
+                System.out.println("No existing author found with this name, inserting a new row.");
+
+                prepsInsertAuthor.setString(1, lastName);
+
+                if (Objects.isNull(middleInitial)) {
+                    prepsInsertAuthor.setNull(3, Types.VARCHAR);
+                } else {
+                    prepsInsertAuthor.setString(3, middleInitial);
+                }
+
+                if (Objects.isNull(middleInitial)) {
+                    prepsSelectAuthor.setNull(3, Types.VARCHAR);
+                } else {
+                    prepsInsertAuthor.setString(3, middleInitial);
+                }
+
+                prepsInsertAuthor.registerOutParameter(4, Types.INTEGER);
+
+                prepsInsertAuthor.execute();
+
+                authorID = prepsInsertAuthor.getInt(4);
+                System.out.println(String.format("A new row has been inserted into the author table, with ID %d", authorID));
+            }
+            else {
+                System.out.println("The following author(s) were found that fit your search:");
+                do {
+                    System.out.println(String.format("%d: %s %s %s", authors.getInt("ID"), authors.getString("first_name"), authors.getString("middle_initial"), authors.getString("last_name")));
+                } while (authors.next());
+
+                System.out.println("Please enter the ID of the author who wrote the book.");
+                authorID = sc.nextInt();
+                sc.nextLine();
+            }
+
+            // insert into wrote
+
+            prepsInsertWrote.setString(1, isbn);
+            prepsInsertWrote.setInt(2, authorID);
+            prepsInsertWrote.execute();
+
+            // insert into physical copy
+
+            prepsInsertPhysicalCopy.setString(1, isbn);
+            prepsInsertPhysicalCopy.setInt(2, libraryID);
+            prepsInsertPhysicalCopy.registerOutParameter(3, Types.INTEGER);
+
+            System.out.println("How many copies of the book did the library acquire?");
+            int numCopies = sc.nextInt();
+            sc.nextLine();
+
+            for (int i = 0; i < numCopies; i++) {
+                prepsInsertPhysicalCopy.execute();
+                connection.commit();
+            }
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
 
     }
 
