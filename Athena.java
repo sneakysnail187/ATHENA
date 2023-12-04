@@ -157,9 +157,11 @@ public class Athena {
             prepsSelectBook.setString(1, isbn);
 
             ResultSet books = prepsSelectBook.executeQuery();
+            boolean bookFound = false;
 
             if (books.next()) {
                 System.out.println(String.format("Book found: %s", books.getString("title")));
+                bookFound = true;
             } else {
                 System.out.println("Book not found, please enter remaining information:");
 
@@ -185,103 +187,106 @@ public class Athena {
                 System.out.println("Row inserted into book table");
             }
 
-            // Get author info and check for existence, or insert into author
+            if (!bookFound) {
 
-            System.out.println("What is the author's last name?");
-            String lastName = sc.nextLine();
-            prepsSelectAuthor.setString(1, lastName);
+                // Get author info and check for existence, or insert into author
 
-            boolean doneWithFirstName = false;
-            String firstName = null;
-            while (!doneWithFirstName) {
-                System.out.println("Will you be entering a first name for the author? Y/N");
-                String resp = sc.nextLine().toLowerCase();
-                if (resp.equals("y")) {
-                    System.out.println("What is the author's first name?");
-                    firstName = sc.nextLine();
-                    doneWithFirstName = true;
-                } else if (resp.equals("n")) {
-                    firstName = null;
-                    doneWithFirstName = true;
-                } else {
-                    System.out.println("Invalid input, please input Y or N");
-                }
-            }
-            if (Objects.isNull(firstName)) {
-                prepsSelectAuthor.setNull(2, Types.VARCHAR);
-            } else {
-                prepsSelectAuthor.setString(2, firstName);
-            }
+                System.out.println("What is the author's last name?");
+                String lastName = sc.nextLine();
+                prepsSelectAuthor.setString(1, lastName);
 
-            boolean doneWithMiddleInitial = false;
-            String middleInitial = null;
-            while (!doneWithMiddleInitial) {
-                System.out.println("Will you be entering a middle initial for the author? Y/N");
-                String resp = sc.nextLine().toLowerCase();
-                if (resp.equals("y")) {
-                    System.out.println("What is the author's middle initial?");
-                    middleInitial = sc.nextLine();
-                    if (middleInitial.length() > 1) {
-                        System.out.println("Middle initial must be only one character long.");
+                boolean doneWithFirstName = false;
+                String firstName = null;
+                while (!doneWithFirstName) {
+                    System.out.println("Will you be entering a first name for the author? Y/N");
+                    String resp = sc.nextLine().toLowerCase();
+                    if (resp.equals("y")) {
+                        System.out.println("What is the author's first name?");
+                        firstName = sc.nextLine();
+                        doneWithFirstName = true;
+                    } else if (resp.equals("n")) {
+                        firstName = null;
+                        doneWithFirstName = true;
                     } else {
-                        doneWithMiddleInitial = true;
+                        System.out.println("Invalid input, please input Y or N");
                     }
-                } else if (resp.equals("n")) {
-                    middleInitial = null;
-                    doneWithMiddleInitial = true;
-                } else {
-                    System.out.println("Invalid input, please input Y or N");
                 }
-            }
-            if (Objects.isNull(middleInitial)) {
-                prepsSelectAuthor.setNull(3, Types.VARCHAR);
-            } else {
-                prepsSelectAuthor.setString(3, middleInitial);
-            }
+                if (Objects.isNull(firstName)) {
+                    prepsSelectAuthor.setNull(2, Types.VARCHAR);
+                } else {
+                    prepsSelectAuthor.setString(2, firstName);
+                }
 
-            ResultSet authors = prepsSelectAuthor.executeQuery();
-            int authorID;
-
-            if (!authors.next()) {
-                System.out.println("No existing author found with this name, inserting a new row.");
-
-                prepsInsertAuthor.setString(1, lastName);
-
+                boolean doneWithMiddleInitial = false;
+                String middleInitial = null;
+                while (!doneWithMiddleInitial) {
+                    System.out.println("Will you be entering a middle initial for the author? Y/N");
+                    String resp = sc.nextLine().toLowerCase();
+                    if (resp.equals("y")) {
+                        System.out.println("What is the author's middle initial?");
+                        middleInitial = sc.nextLine();
+                        if (middleInitial.length() > 1) {
+                            System.out.println("Middle initial must be only one character long.");
+                        } else {
+                            doneWithMiddleInitial = true;
+                        }
+                    } else if (resp.equals("n")) {
+                        middleInitial = null;
+                        doneWithMiddleInitial = true;
+                    } else {
+                        System.out.println("Invalid input, please input Y or N");
+                    }
+                }
                 if (Objects.isNull(middleInitial)) {
-                    prepsInsertAuthor.setNull(2, Types.VARCHAR);
+                    prepsSelectAuthor.setNull(3, Types.VARCHAR);
                 } else {
-                    prepsInsertAuthor.setString(3, middleInitial);
+                    prepsSelectAuthor.setString(3, middleInitial);
                 }
 
-                if (Objects.isNull(middleInitial)) {
-                    prepsInsertAuthor.setNull(3, Types.VARCHAR);
-                } else {
-                    prepsInsertAuthor.setString(3, middleInitial);
+                ResultSet authors = prepsSelectAuthor.executeQuery();
+                int authorID;
+
+                if (!authors.next()) {
+                    System.out.println("No existing author found with this name, inserting a new row.");
+
+                    prepsInsertAuthor.setString(1, lastName);
+
+                    if (Objects.isNull(middleInitial)) {
+                        prepsInsertAuthor.setNull(2, Types.VARCHAR);
+                    } else {
+                        prepsInsertAuthor.setString(3, middleInitial);
+                    }
+
+                    if (Objects.isNull(middleInitial)) {
+                        prepsInsertAuthor.setNull(3, Types.VARCHAR);
+                    } else {
+                        prepsInsertAuthor.setString(3, middleInitial);
+                    }
+
+                    prepsInsertAuthor.registerOutParameter(4, Types.INTEGER);
+
+                    prepsInsertAuthor.execute();
+
+                    authorID = prepsInsertAuthor.getInt(4);
+                    System.out.println(String.format("A new row has been inserted into the author table, with ID %d", authorID));
+                }
+                else {
+                    System.out.println("The following author(s) were found that fit your search:");
+                    do {
+                        System.out.println(String.format("%d: %s %s %s", authors.getInt("ID"), authors.getString("first_name"), authors.getString("middle_initial"), authors.getString("last_name")));
+                    } while (authors.next());
+
+                    System.out.println("Please enter the ID of the author who wrote the book.");
+                    authorID = sc.nextInt();
+                    sc.nextLine();
                 }
 
-                prepsInsertAuthor.registerOutParameter(4, Types.INTEGER);
+                // insert into wrote
 
-                prepsInsertAuthor.execute();
-
-                authorID = prepsInsertAuthor.getInt(4);
-                System.out.println(String.format("A new row has been inserted into the author table, with ID %d", authorID));
+                prepsInsertWrote.setString(1, isbn);
+                prepsInsertWrote.setInt(2, authorID);
+                prepsInsertWrote.execute();
             }
-            else {
-                System.out.println("The following author(s) were found that fit your search:");
-                do {
-                    System.out.println(String.format("%d: %s %s %s", authors.getInt("ID"), authors.getString("first_name"), authors.getString("middle_initial"), authors.getString("last_name")));
-                } while (authors.next());
-
-                System.out.println("Please enter the ID of the author who wrote the book.");
-                authorID = sc.nextInt();
-                sc.nextLine();
-            }
-
-            // insert into wrote
-
-            prepsInsertWrote.setString(1, isbn);
-            prepsInsertWrote.setInt(2, authorID);
-            prepsInsertWrote.execute();
 
             // insert into physical copy
 
@@ -297,6 +302,7 @@ public class Athena {
                 prepsInsertPhysicalCopy.execute();
                 connection.commit();
             }
+            System.out.println(String.format("Inserted %d entries to physical_copy for book %s at library %d", numCopies, isbn, libraryID));
         }
         catch (SQLException e) {
             e.printStackTrace();
@@ -319,65 +325,64 @@ public class Athena {
         System.out.println("6. Return to main menu");
 
         int selection = sc.nextInt();
-        sc.nextLine();
 
-            switch (selection) {
-                case 1:
-                    searchProc = "{call dbo.selectBookTitle(?)}";
-                    System.out.println("Enter title");
-                    info = sc.nextLine();
-                    break;
-                case 2:
-                    searchProc = "{call dbo.selectBookAuthor(?)}";
-                    System.out.println("Enter author's full name without spaces");
-                    info = sc.nextLine();
-                    break;
-                case 3:
-                    searchProc = "{call dbo.selectBookPub(?)}";
-                    System.out.println("Enter publisher");
-                    info = sc.nextLine();
-                    break;
-                case 4:
-                    searchProc = "{call dbo.selectBookDate(?)}";
-                    System.out.println("Enter date published in form: YYYY-MM-DD:");
-                    datePub = Date.valueOf(sc.nextLine());
-                    break;
-                case 5:
-                    searchProc = "{call dbo.selectBookGenre(?)}";
-                    System.out.println("Enter genre");
-                    info = sc.nextLine();
-                    break;
-                case 6:
-                    return;
-                default:
-                    System.out.println("Please input a number between 1 and 6 to make your selection.");
-                    break;
-            }
+        switch (selection) {
+            case 1:
+                searchProc = "{call.dbo.selectBookTitle(?)}";
+                System.out.println("Enter title");
+                info = sc.nextLine();
+                break;
+            case 2:
+                searchProc = "{call.dbo.selectBookAuthor(?)}";
+                System.out.println("Enter author's full name without spaces");
+                info = sc.nextLine();
+                break;
+            case 3:
+                searchProc = "{call.dbo.selectBookPub(?)}";
+                System.out.println("Enter publisher");
+                info = sc.nextLine();
+                break;
+            case 4:
+                searchProc = "{call.dbo.selectBookDate(?)}";
+                System.out.println("Enter date published in form: YYYY-MM-DD:");
+                datePub = Date.valueOf(sc.nextLine());
+                break;
+            case 5:
+                searchProc = "{call.dbo.selectBookGenre(?)}";
+                System.out.println("Enter genre");
+                info = sc.nextLine();
+                break;
+            case 6:
+                return;
+            default:
+                System.out.println("Please input a number between 1 and 6 to make your selection.");
+                break;
+        }
         try (Connection connection = DriverManager.getConnection(connectionUrl);
-             CallableStatement prepsSearch = connection.prepareCall(searchProc);)
+             CallableStatement prepsInsertCheckedOut = connection.prepareCall(searchProc, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);)
         {
-            if(selection == 4){
-                prepsSearch.setDate(1, datePub);
+            if(selection == 3){
+                prepsInsertCheckedOut.setDate(1, datePub);
             }
             else{
-                prepsSearch.setString(1, info);
+                prepsInsertCheckedOut.setString(1, info);
             }
-            
-            ResultSet r = prepsSearch.executeQuery();
+
+
+            //prepsInsertCheckedOut.setDate(3, new Date(System.currentTimeMillis()));
+
+            ResultSet r = prepsInsertCheckedOut.executeQuery();
 
             connection.commit();
 
-            //r.next();
-
             while (r.next()) {
-                String ID = r.getString("ID");
                 String title = r.getString("title");
                 String genre = r.getString("genre");
                 String publisher = r.getString("publisher");
                 Date date = r.getDate("date_published");
                 String lib = r.getString("library_ID");
-                System.out.println("ID: "+ ID +" Title: " + title + " Genre: " + genre 
-                + " Publisher: " + publisher + " Date Published: " + date + " Library ID: " + lib);
+                System.out.println("Title: " + title + "Genre: " + genre
+                        + "Publisher: " + publisher + "Date Published: " + date + "Library ID: " + lib);
             }
         }
         catch (SQLException e) {
@@ -484,32 +489,21 @@ public class Athena {
     public static void requestBook() {
         String requestProc = "{call dbo.insertRequest(?,?,?)}";
         int customerID = userID;
-        int destLib;
-        int bookID;
+
+        String bookID;
         System.out.println("What is the ID of the book you would like to request?");
-        bookID = sc.nextInt();
-        sc.nextLine();
-
-        System.out.println("What is the ID of the library you would like to pick up from?");
-        destLib = sc.nextInt();
-
-        int sourceLib = getBookLibraryID(bookID);
-
-        sc.nextLine();
+        bookID = sc.nextLine();
         try (Connection connection = DriverManager.getConnection(connectionUrl);
-                 CallableStatement prepsSelectBook = connection.prepareCall(requestProc);)
-            {
-                prepsSelectBook.setInt(1, bookID);
-                prepsSelectBook.setInt(2, destLib);
-                prepsSelectBook.setInt(3, sourceLib);
+             CallableStatement prepsSelectBook = connection.prepareCall(requestProc);)
+        {
+            prepsSelectBook.setString(1, bookID);
+            prepsSelectBook.setInt(2, getCustomerLibID(customerID));
+            prepsSelectBook.setInt(3, getBookLibraryID(bookID));
 
-                prepsSelectBook.execute();
-
-                connection.commit();
-            }
-            catch (SQLException e) {
-                e.printStackTrace();
-            }
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
         System.out.println("Request commited");
     }
 
@@ -540,10 +534,15 @@ public class Athena {
                     String isbn = rs.getString("isbn");
                     String title = rs.getString("title");
                     String author_name = rs.getString("author_name");
-                    System.out.println(String.format("Attempting to check out %s: %s by %s", isbn, title, author_name));
-                    haveValidBookID = true;
+                    String status = rs.getString("status");
+                    if (!status.equals("avail")) {
+                        System.out.println("That book is not available to be checked out");
+                    }
+                    else {
+                        System.out.println(String.format("Checked out %s: %s by %s", isbn, title, author_name));
+                        haveValidBookID = true;
+                    }
                 }
-
                 else {
                     System.out.println("Could not find the book with that ID, please try again.");
                 }
@@ -569,20 +568,19 @@ public class Athena {
         }
     }
 
-    public static int getBookLibraryID(int bookID) {
+    public static int getBookLibraryID(String bookIsbn) {
 
-        String getLibProc = "{call dbo.selectBookLibraryID(?)}";
+        String checkOutProc = "{call dbo.selectBookLibraryID(?)}";
         int libID = 0;
 
         try (Connection connection = DriverManager.getConnection(connectionUrl);
-             CallableStatement prepsInsertCheckedOut = connection.prepareCall(getLibProc);)
+             CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc,
+                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);)
         {
-            prepsInsertCheckedOut.setInt(1, bookID);
+            prepsInsertCheckedOut.setString(1, bookIsbn);
 
             ResultSet r = prepsInsertCheckedOut.executeQuery();
-            if(r.next()){
-                libID = r.getInt("library_ID");
-            }
+            libID = r.getInt("library_ID");
             connection.commit();
         }
         catch (SQLException e) {
@@ -594,16 +592,17 @@ public class Athena {
 
     public static int getCustomerLibID(int customerID){
 
-        String checkOutProc = "{call dbo.selectLibraryID(?)}";
+        String checkOutProc = "{call dbo.selectLibraryID(?, ?, ?)}";
         int libID = 0;
 
         try (Connection connection = DriverManager.getConnection(connectionUrl);
-             CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc);)
+             CallableStatement prepsInsertCheckedOut = connection.prepareCall(checkOutProc,
+                     ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);)
         {
             prepsInsertCheckedOut.setInt(1, customerID);
 
             ResultSet r = prepsInsertCheckedOut.executeQuery();
-            libID = r.getInt("local_library_ID");
+            libID = r.getInt("ID");
             connection.commit();
         }
         catch (SQLException e) {
@@ -657,15 +656,58 @@ public class Athena {
     }
 
     public static void librarianUseCases() {
-        Scanner sc = new Scanner(System.in);
         boolean done = false;
 
         System.out.println("Welcome! Which library are you working at?");
-        System.out.println("Please enter the zip code of your library:");
-        int zip = sc.nextInt();
 
-        // TODO get libraryID from zip code
+        // get libraryID from zip code
+
         int libraryID = 0;
+
+        Boolean validZip = false;
+        String zip = "";
+        while (!validZip) {
+            System.out.println("Please enter the zipcode of your library:");
+            zip = sc.nextLine();
+            try {
+                @SuppressWarnings("unused")
+                int z = Integer.parseInt(zip);
+                if (zip.length() == 5) {validZip = true;}
+                else {System.out.println("Please use a 5 digit zip");}
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number format");
+            }
+        }
+
+        String getLocalLibrariesProc = "{call dbo.getLibraryByZip(?)}";
+
+        try (Connection connection = DriverManager.getConnection(connectionUrl);
+             CallableStatement prepsGetLibs = connection.prepareCall(getLocalLibrariesProc);)
+        {
+            prepsGetLibs.setString(1, zip);
+            ResultSet resSet = prepsGetLibs.executeQuery();
+
+            connection.commit();
+            int i = 1;
+            ArrayList<Integer> ids = new ArrayList<>();
+            if (!resSet.isBeforeFirst()) {
+                System.out.println("We're sorry, but there appear to be no libraries in this area.");
+                librarianUseCases();
+            } else {
+                System.out.println("Select your prefered library:");
+                while (resSet.next()) {
+                    String bname = resSet.getString("branch_name");
+                    ids.add(resSet.getInt("ID"));
+                    System.out.println(i + ": " + bname);
+                    i++;
+                }
+                int selection = sc.nextInt();
+                sc.nextLine();
+                libraryID = ids.get(selection - 1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
         while (!done) {
             System.out.println("Please enter a number to select an action:");
@@ -673,6 +715,7 @@ public class Athena {
             System.out.println("2. Return to main menu");
 
             int selection = sc.nextInt();
+            sc.nextLine();
 
             switch (selection) {
                 case 1:
