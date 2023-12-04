@@ -123,29 +123,29 @@ public class Athena {
 
             switch (selection) {
                 case 1:
-                    searchProc = "{call.dbo.selectBookTitle(?,?,?)}";
+                    searchProc = "{call.dbo.selectBookTitle(?)}";
                     System.out.println("Enter title");
-                    title = sc.nextLine();
+                    info = sc.nextLine();
                     break;
                 case 2:
-                    searchProc = "{call.dbo.selectBookAuthor(?,?,?,?)}";
+                    searchProc = "{call.dbo.selectBookAuthor(?)}";
                     System.out.println("Enter author's full name without spaces");
                     info = sc.nextLine();
                     break;
                 case 3:
-                    searchProc = "{call.dbo.selectBookPub(?,?,?)}";
+                    searchProc = "{call.dbo.selectBookPub(?)}";
                     System.out.println("Enter publisher");
-                    pub = sc.nextLine();
+                    info = sc.nextLine();
                     break;
                 case 4:
-                    searchProc = "{call.dbo.selectBookDate(?,?,?)}";
+                    searchProc = "{call.dbo.selectBookDate(?)}";
                     System.out.println("Enter date published in form: YYYY-MM-DD:");
                     datePub = Date.valueOf(sc.nextLine());
                     break;
                 case 5:
-                    searchProc = "{call.dbo.selectBookGenre(?,?,?)}";
+                    searchProc = "{call.dbo.selectBookGenre(?)}";
                     System.out.println("Enter genre");
-                    genre = sc.nextLine();
+                    info = sc.nextLine();
                     break;
                 case 6:
                     return;
