@@ -16,7 +16,7 @@ public class Athena {
     private static String connectionUrl = "jdbc:sqlserver://cxp-sql-03\\mxr659;"
             + "database=athena;"
             + "user=sa;"
-            + "password={PASSWORD};"
+            + "password=YmQID.p4)D0s=K;"
             + "encrypt=true;"
             + "trustServerCertificate=true;"
             + "loginTimeout=3;";
@@ -504,12 +504,7 @@ public class Athena {
     public static void checkOutBook(int customerID) {
 
         String checkOutProc = "{call dbo.insertCheckedOut(?, ?)}";
-        String selectBook = "select book.isbn as isbn, book.title as title, author.last_name as author_name"
-                + " from physical_copy"
-                + " inner join book on (physical_copy.isbn = book.isbn)"
-                + " inner join wrote on (book.isbn = wrote.isbn)"
-                + " inner join author on (wrote.author_ID) = author.ID"
-                + " where physical_copy.ID = ?";
+        String selectBook = "{call dbo.selectBookFromCopyID(?)}"
 
         int bookID;
         Scanner sc = new Scanner(System.in);
@@ -562,23 +557,6 @@ public class Athena {
         }
     }
 
-    public static int getCustomerID() {
-        String customerFirstName, customerLastName;
-        Date customerDOB;
-
-        int customerID = 0;
-
-        System.out.println("Please enter your first name:");
-        customerFirstName = sc.nextLine();
-
-        System.out.println("Please enter your last name:");
-        customerLastName = sc.nextLine();
-
-        // TODO figure out how to deal with dates in JDBC
-        // System.out.println();
-        return customerID;
-    }
-
     public static int getBookLibraryID(String bookIsbn) {
 
         String checkOutProc = "{call dbo.selectBookLibraryID(?)}";
@@ -628,11 +606,7 @@ public class Athena {
         boolean done = false;
 
         System.out.println("Welcome! Let's start by figuring out who you are.");
-        int customerID = getCustomerID();
         Scanner sc = new Scanner(System.in);
-        if(userID == null) {
-            userID = getCustomerID();
-        }
 
         while (!done) {
             System.out.println("Please enter a number to select an action:");
