@@ -504,7 +504,7 @@ public class Athena {
     public static void checkOutBook(int customerID) {
 
         String checkOutProc = "{call dbo.insertCheckedOut(?, ?)}";
-        String selectBook = "{call dbo.selectBookFromCopyID(?)}"
+        String selectBook = "{call dbo.selectBookFromCopyID(?)}";
 
         int bookID;
         Scanner sc = new Scanner(System.in);
